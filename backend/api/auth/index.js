@@ -3,7 +3,7 @@ const serverless = require("serverless-http");
 const passport = require("passport");
 const session = require("express-session");
 const jwt = require("jsonwebtoken");
-require("./passport"); // Load passport configuration
+require("../passport"); // Load passport configuration
 
 const app = express();
 app.use(express.json());
