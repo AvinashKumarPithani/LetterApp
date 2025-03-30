@@ -8,11 +8,14 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_REDIRECT_URI, // Now using .env
+      callbackURL: process.env.GOOGLE_REDIRECT_URI,
       passReqToCallback: true,
+      scope: ["profile", "email"], // ✅ Explicitly adding scope
     },
     async (request, accessToken, refreshToken, profile, done) => {
       try {
+        console.log("Google Profile:", profile); // Debugging log
+
         let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {

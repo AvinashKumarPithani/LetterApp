@@ -9,8 +9,6 @@ const Draft = require("../models/Draft");
 require("../passport"); // Ensure passport is properly required
 require("dotenv").config();
 
-const authRoutes = require("./auth"); // ✅ Required auth routes
-
 const app = express();
 
 app.use(express.json());
@@ -51,8 +49,53 @@ app.get("/", (req, res) => {
   res.send("Server is running! 🚀");
 });
 
-// ✅ Include authentication routes
-app.use("/api/auth", authRoutes);
+// ✅ Google OAuth Routes
+app.get(
+  "/auth/google",
+  (req, res, next) => {
+    const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}&response_type=code&scope=profile email&access_type=offline&prompt=consent`;
+
+    console.log("Generated Google Auth URL:", authUrl); // 🔍 Debugging log
+    console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+    console.log("GOOGLE_REDIRECT_URI:", process.env.GOOGLE_REDIRECT_URI);
+
+    next();
+  },
+  
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    prompt: "consent",
+  })
+);
+
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect(process.env.FRONTEND_URL + "/dashboard");
+  }
+);
+
+app.get("/auth/user", (req, res) => {
+  req.isAuthenticated()
+    ? res.json({ user: req.user })
+    : res.json({ user: null });
+});
+
+app.post("/auth/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) return res.status(500).json({ message: "Logout failed" });
+
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to clear session" });
+      }
+
+      res.clearCookie("connect.sid", { path: "/" });
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+});
 
 // ✅ Draft API Routes
 app.post("/api/drafts", async (req, res) => {
