@@ -4,7 +4,10 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "export $(cat .env | xargs) && node index.js",
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel",
+    "start": "export $(cat .env | xargs) && node api/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -25,6 +28,7 @@
     "node-fetch": "^3.3.2",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "serverless-http": "^3.1.0",
     "whatwg-url": "^14.2.0"
   }
 }
