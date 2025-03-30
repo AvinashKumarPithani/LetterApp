@@ -52,16 +52,15 @@ app.get("/", (req, res) => {
 app.get(
   "/auth/google",
   (req, res, next) => {
-    req.session.destroy(() => {
-      res.clearCookie("connect.sid"); // Clear session before authentication
-      next();
-    });
+    console.log("Google Auth Request Received"); // Debugging log
+    next();
   },
   passport.authenticate("google", {
-    scope: ["profile", "email"],
-    prompt: "consent",
+    scope: ["profile", "email"], // ✅ Ensure scope is present
+    prompt: "consent", // ✅ Ensure re-authentication
   })
 );
+
 
 app.get(
   "/auth/google/callback",
