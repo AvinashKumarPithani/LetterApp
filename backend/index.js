@@ -7,12 +7,18 @@ const session = require("express-session");
 const mongoose = require("mongoose");
 const Draft = require("./models/Draft");
 require("dotenv").config();
-require("dotenv").config();
+
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 
 app.use(
   session({
@@ -21,7 +27,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Set to `true` if using HTTPS
+      secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 1, // 1 hour session expiration
     },
   })
@@ -35,14 +41,14 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ MongoDB Atlas Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+  .then(() => console.log("MongoDB Atlas Connected"))
+  .catch((err) => console.error("MongoDB Connection Error:", err));
 
 app.get("/", (req, res) => {
-  res.send("Server is running! 🎉");
+  res.send("Server is running!");
 });
 
-// ✅ Google OAuth Routes
+// Google OAuth Routes
 app.get(
   "/auth/google",
   (req, res, next) => {
@@ -61,16 +67,17 @@ app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
   (req, res) => {
-    res.redirect("http://localhost:5173/dashboard");
+    res.redirect(`${process.env.CLIENT_URL}/dashboard`);
   }
 );
+
 app.get("/auth/user", (req, res) => {
   req.isAuthenticated()
     ? res.json({ user: req.user })
     : res.json({ user: null });
 });
 
-// ✅ 🚀 Logout Route
+// Logout Route
 app.post("/auth/logout", (req, res) => {
   req.logout((err) => {
     if (err) return res.status(500).json({ message: "Logout failed" });
@@ -80,7 +87,7 @@ app.post("/auth/logout", (req, res) => {
         return res.status(500).json({ message: "Failed to clear session" });
       }
 
-      res.clearCookie("connect.sid", { path: "/" }); // Ensure cookie is cleared
+      res.clearCookie("connect.sid", { path: "/" });
 
       res.status(200).json({ message: "Logged out successfully" });
     });
@@ -99,7 +106,7 @@ app.get("/auth/google/logout", (req, res) => {
   });
 });
 
-// ✅ Draft Model & API Routes
+// Draft Model & API Routes
 app.post("/api/drafts", async (req, res) => {
   try {
     const { userId, title, content } = req.body;
@@ -116,9 +123,7 @@ app.get("/api/drafts/latest", async (req, res) => {
     const latestDraft = await Draft.findOne().sort({ createdAt: -1 });
     res.json(latestDraft);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error fetching latest draft", error: err });
+    res.status(500).json({ message: "Error fetching latest draft", error: err });
   }
 });
 
@@ -135,7 +140,7 @@ app.put("/api/drafts/:id", async (req, res) => {
   }
 });
 
-// ✅ Google Drive Integration
+// Google Drive Integration
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -147,7 +152,7 @@ oauth2Client.setCredentials({
 
 const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-// ✅ Function to Get or Create "Letters" Folder
+// Function to Get or Create "Letters" Folder
 async function getOrCreateLettersFolder() {
   try {
     const folderResponse = await drive.files.list({
@@ -171,12 +176,12 @@ async function getOrCreateLettersFolder() {
 
     return folder.data.id;
   } catch (error) {
-    console.error("❌ Error getting/creating 'Letters' folder:", error);
+    console.error("Error getting/creating 'Letters' folder:", error);
     throw error;
   }
 }
 
-// ✅ Upload Draft to Google Drive
+// Upload Draft to Google Drive
 app.post("/api/upload-draft-to-drive", async (req, res) => {
   try {
     const { draftId } = req.body;
@@ -204,12 +209,12 @@ app.post("/api/upload-draft-to-drive", async (req, res) => {
       fileId: file.data.id,
     });
   } catch (error) {
-    console.error("❌ Error uploading draft:", error);
+    console.error("Error uploading draft:", error);
     res.status(500).json({ error: "Failed to upload draft" });
   }
 });
 
-// ✅ List Saved Letters
+// List Saved Letters
 app.get("/api/drive/files", async (req, res) => {
   try {
     const folderId = await getOrCreateLettersFolder();
@@ -222,12 +227,12 @@ app.get("/api/drive/files", async (req, res) => {
 
     res.status(200).json(response.data.files);
   } catch (error) {
-    console.error("❌ Error fetching files:", error);
+    console.error("Error fetching files:", error);
     res.status(500).json({ error: "Failed to retrieve files" });
   }
 });
 
-// ✅ View Letter Content
+// View Letter Content
 app.get("/api/drive/file/:fileId", async (req, res) => {
   try {
     const response = await drive.files.export(
@@ -238,15 +243,12 @@ app.get("/api/drive/file/:fileId", async (req, res) => {
     res.setHeader("Content-Type", "text/plain");
     response.data.pipe(res);
   } catch (error) {
-    console.error(
-      "❌ Error fetching file content:",
-      error.response?.data || error
-    );
+    console.error("Error fetching file content:", error.response?.data || error);
     res.status(500).json({ error: "Failed to retrieve file content" });
   }
 });
 
-// ✅ Download Letter as PDF
+// Download Letter as PDF
 app.get("/api/drive/file/:fileId/pdf", async (req, res) => {
   try {
     const fileId = req.params.fileId;
@@ -263,20 +265,17 @@ app.get("/api/drive/file/:fileId/pdf", async (req, res) => {
       { responseType: "stream" }
     );
 
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${fileName}.pdf"`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}.pdf"`);
     res.setHeader("Content-Type", "application/pdf");
 
     response.data.pipe(res);
   } catch (error) {
-    console.error("❌ Error downloading file:", error);
+    console.error("Error downloading file:", error);
     res.status(500).json({ error: "Failed to download file" });
   }
 });
 
-// ✅ Start Server
-app.listen(5000, () =>
-  console.log("🚀 Server running on http://localhost:5000")
+// Start Server
+app.listen(process.env.PORT || 5000, () =>
+  console.log(`Server running on ${process.env.SERVER_URL || "http://localhost:5000"}`)
 );

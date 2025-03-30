@@ -11,23 +11,21 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/auth/user")
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/auth/user`, { withCredentials: true })
       .then((res) => setUser(res.data.user))
-      .catch((err) => console.error("❌ Error fetching user:", err));
+      .catch((err) => console.error("Error fetching user:", err));
   }, []);
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:5000/auth/logout", {
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
         method: "POST",
-        credentials: "include", // Important to send session cookies
+        credentials: "include",
       });
 
-      // Clear user data from local storage
       localStorage.removeItem("user");
       localStorage.removeItem("token");
 
-      // Redirect to login page
       window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
@@ -40,8 +38,8 @@ const Dashboard = () => {
         minHeight: "100vh",
         backgroundColor: "#e0e0e0",
         display: "flex",
-        justifyContent: "center",  // Center horizontally
-        alignItems: "center",      // Center vertically
+        justifyContent: "center",
+        alignItems: "center",
         padding: 3
       }}
     >
@@ -53,7 +51,7 @@ const Dashboard = () => {
           borderRadius: 2,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center" // Center content inside the Paper
+          alignItems: "center"
         }}
       >
         <Box

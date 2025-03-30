@@ -7,24 +7,24 @@ const LetterList = ({ setSelectedLetter, setLetterContent }) => {
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        axios.get("http://localhost:5000/api/drive/files")
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/drive/files`)
             .then((res) => setLetters(res.data))
-            .catch((err) => console.error("❌ Error fetching letters:", err));
+            .catch((err) => console.error("Error fetching letters:", err));
     }, []);
 
     const viewLetter = (fileId) => {
-        axios.get(`http://localhost:5000/api/drive/file/${fileId}`, { responseType: "text" })
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/drive/file/${fileId}`, { responseType: "text" })
             .then((res) => {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(res.data, "text/html");
                 setLetterContent(doc.body.innerHTML);
                 setSelectedLetter(fileId);
             })
-            .catch((err) => console.error("❌ Error fetching letter:", err));
+            .catch((err) => console.error("Error fetching letter:", err));
     };
 
     const downloadLetter = (fileId) => {
-        window.open(`http://localhost:5000/api/drive/file/${fileId}/pdf`, "_blank");
+        window.open(`${import.meta.env.VITE_BACKEND_URL}/api/drive/file/${fileId}/pdf`, "_blank");
     };
 
     return (
@@ -46,7 +46,6 @@ const LetterList = ({ setSelectedLetter, setLetterContent }) => {
                         .filter(letter => letter.name.toLowerCase().includes(searchTerm.toLowerCase()))
                         .map(letter => (
                             <ListItem key={letter.id} sx={{ display: "flex", alignItems: "center", borderBottom: "1px solid #ddd", paddingY: 1 }}>
-
                                 <ListItemText primary={letter.name} sx={{ flex: 1, marginRight: 2 }} />
 
                                 <Stack direction="row" spacing={1}>
