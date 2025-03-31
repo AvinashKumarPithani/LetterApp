@@ -209,12 +209,15 @@ app.post("/api/upload-draft-to-drive", async (req, res) => {
     const folderId = await getOrCreateLettersFolder();
 
     const fileMetadata = {
-      name: draft.title,
+      name: draft.title || "Untitled Draft",
       mimeType: "application/vnd.google-apps.document",
       parents: [folderId],
     };
 
-    const media = { mimeType: "text/plain", body: draft.content };
+    const media = {
+      mimeType: "text/plain",
+      body: Buffer.from(draft.content, "utf-8"), // ✅ Ensure correct encoding
+    };
 
     const file = await drive.files.create({
       resource: fileMetadata,
