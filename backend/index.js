@@ -201,6 +201,7 @@ async function getOrCreateLettersFolder() {
 
 // Upload Draft to Google Drive
 // Upload Draft to Google Drive
+// Upload Draft to Google Drive as a Text Document
 app.post("/api/upload-draft-to-drive", async (req, res) => {
   try {
     const { draftId } = req.body;
@@ -217,14 +218,16 @@ app.post("/api/upload-draft-to-drive", async (req, res) => {
     const folderId = await getOrCreateLettersFolder();
 
     const fileMetadata = {
-      name: draft.title || "Untitled Draft",
+      name: `${draft.title}.txt`, // Ensure it's saved as a `.txt` file
       mimeType: "application/vnd.google-apps.document",
       parents: [folderId],
     };
 
+    const plainTextContent = draft.content.replace(/<[^>]*>/g, ""); // ✅ Remove HTML tags
+
     const media = {
-      mimeType: "text/plain",
-      body: draft.content || "No content", // ✅ Prevent empty body errors
+      mimeType: "text/plain", // Ensure it's plain text
+      body: plainTextContent || "No content available.",
     };
 
     const file = await drive.files.create({
