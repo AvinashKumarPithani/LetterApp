@@ -37,13 +37,19 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB Atlas Connected"))
-  .catch((err) => console.error("MongoDB Connection Error:", err));
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState === 1) return; // Already connected
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ MongoDB Connected");
+  } catch (err) {
+    console.error("❌ MongoDB Connection Error:", err);
+  }
+};
+connectDB();
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
@@ -62,12 +68,22 @@ app.get(
   })
 );
 
-
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/" }),
   (req, res) => {
     res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+
+    process.nextTick(async () => {
+      try {
+        if (req.user) {
+          req.user.lastLogin = new Date();
+          await req.user.save();
+        }
+      } catch (err) {
+        console.error("Error saving user:", err);
+      }
+    });
   }
 );
 
@@ -123,7 +139,9 @@ app.get("/api/drafts/latest", async (req, res) => {
     const latestDraft = await Draft.findOne().sort({ createdAt: -1 });
     res.json(latestDraft);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching latest draft", error: err });
+    res
+      .status(500)
+      .json({ message: "Error fetching latest draft", error: err });
   }
 });
 
@@ -243,7 +261,10 @@ app.get("/api/drive/file/:fileId", async (req, res) => {
     res.setHeader("Content-Type", "text/plain");
     response.data.pipe(res);
   } catch (error) {
-    console.error("Error fetching file content:", error.response?.data || error);
+    console.error(
+      "Error fetching file content:",
+      error.response?.data || error
+    );
     res.status(500).json({ error: "Failed to retrieve file content" });
   }
 });
@@ -265,7 +286,10 @@ app.get("/api/drive/file/:fileId/pdf", async (req, res) => {
       { responseType: "stream" }
     );
 
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${fileName}.pdf"`
+    );
     res.setHeader("Content-Type", "application/pdf");
 
     response.data.pipe(res);
@@ -277,5 +301,7 @@ app.get("/api/drive/file/:fileId/pdf", async (req, res) => {
 
 // Start Server
 app.listen(process.env.PORT || 5000, () =>
-  console.log(`Server running on ${process.env.SERVER_URL || "http://localhost:5000"}`)
+  console.log(
+    `Server running on ${process.env.SERVER_URL || "http://localhost:5000"}`
+  )
 );
