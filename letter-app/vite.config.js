@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/",  // ✅ Ensure correct asset paths for Vercel
+  base: "./", // ✅ Use relative paths to avoid broken assets
 });
