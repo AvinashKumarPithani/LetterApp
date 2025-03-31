@@ -200,11 +200,19 @@ async function getOrCreateLettersFolder() {
 }
 
 // Upload Draft to Google Drive
+// Upload Draft to Google Drive
 app.post("/api/upload-draft-to-drive", async (req, res) => {
   try {
     const { draftId } = req.body;
+
+    if (!draftId) {
+      return res.status(400).json({ error: "Draft ID is required" });
+    }
+
     const draft = await Draft.findById(draftId);
-    if (!draft) return res.status(404).json({ message: "Draft not found" });
+    if (!draft) {
+      return res.status(404).json({ message: "Draft not found" });
+    }
 
     const folderId = await getOrCreateLettersFolder();
 
@@ -216,7 +224,7 @@ app.post("/api/upload-draft-to-drive", async (req, res) => {
 
     const media = {
       mimeType: "text/plain",
-      body: Buffer.from(draft.content, "utf-8"), // ✅ Ensure correct encoding
+      body: draft.content || "No content", // ✅ Prevent empty body errors
     };
 
     const file = await drive.files.create({
@@ -225,12 +233,12 @@ app.post("/api/upload-draft-to-drive", async (req, res) => {
       fields: "id",
     });
 
-    res.json({
-      message: "Draft uploaded to Google Drive successfully!",
+    res.status(200).json({
+      message: "Draft uploaded successfully!",
       fileId: file.data.id,
     });
   } catch (error) {
-    console.error("Error uploading draft:", error);
+    console.error("Error uploading draft:", error.message || error);
     res.status(500).json({ error: "Failed to upload draft" });
   }
 });
